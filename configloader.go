@@ -23,7 +23,7 @@ func (c configLoader) fetchConfigPath() string {
 	return result
 }
 
-func (c configLoader) loadConfigFile(cfg *interface{}, extraArgs ...string) {
+func (c configLoader) loadConfigFile(cfg interface{}, extraArgs ...string) {
 	_ = cleanenv.ReadEnv(cfg)
 	if extraArgs != nil {
 		if err := cleanenv.ReadConfig(extraArgs[0], cfg); err != nil {
@@ -45,11 +45,11 @@ func (c configLoader) loadConfigFile(cfg *interface{}, extraArgs ...string) {
 	}
 }
 
-func (c configLoader) New(cfg *interface{}) {
+func (c configLoader) New(cfg interface{}) {
 	c.loadConfigFile(cfg)
 }
 
-func (c configLoader) NewWithExtraPath(cfg *interface{}, path string) {
+func (c configLoader) NewWithExtraPath(cfg interface{}, path string) {
 	c.loadConfigFile(cfg, path)
 }
 
