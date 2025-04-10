@@ -9,8 +9,8 @@ import (
 	"strconv"
 )
 
-// GetEnv returns the value of the environment variable or the fallback if not found.
-// If the environment variable is required (i.e., fallback is empty), it returns an error.
+// GetEnv returns the value of the environment variable.
+// If the environment variable is not found, it returns an error.
 func GetEnv(key string) (string, error) {
 	value := os.Getenv(key)
 	if value == "" {
@@ -19,7 +19,18 @@ func GetEnv(key string) (string, error) {
 	return value, nil
 }
 
-// GetEnvOrFallback returns the value of the environment variable or the fallback if not found.
+// GetEnvOrPanic returns the value of the environment variable.
+// If the environment variable is not found, it panics.
+func GetEnvOrPanic(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("missing environment variable: %s", key))
+	}
+	return value
+}
+
+// GetEnvOrFallback returns the value of the environment variable.
+// If the environment variable is not found, it returns the fallback value.
 func GetEnvOrFallback(key string, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -28,8 +39,10 @@ func GetEnvOrFallback(key string, fallback string) string {
 	return value
 }
 
-// GetEnvInt returns the integer value of the environment variable or the fallback if not found.
-// If the environment variable is required and can't be converted to an integer, it returns an error.
+// GetEnvInt returns the integer value of the environment variable.
+// If the environment variable is not found and fallback is 0, it returns an error.
+// If the environment variable is not found and fallback is not 0, it returns the fallback.
+// If the environment variable cannot be converted to an integer, it returns an error.
 func GetEnvInt(key string, fallback int) (int, error) {
 	value := os.Getenv(key)
 	if value == "" {
@@ -45,8 +58,39 @@ func GetEnvInt(key string, fallback int) (int, error) {
 	return result, nil
 }
 
+// GetEnvIntOrPanic returns the integer value of the environment variable.
+// If the environment variable is not found or cannot be converted to an integer, it panics.
+func GetEnvIntOrPanic(key string) int {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("missing environment variable: %s", key))
+	}
+	result, err := strconv.Atoi(value)
+	if err != nil {
+		panic(fmt.Sprintf("failed to convert %s to int: %v", key, err))
+	}
+	return result
+}
+
+// GetEnvIntOrFallback returns the integer value of the environment variable.
+// If the environment variable is not found or cannot be converted to an integer,
+// it returns the fallback value.
+func GetEnvIntOrFallback(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	result, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return result
+}
+
 // LoadEnv loads environment variables from a specified file or default .env file.
-// It handles error logging but does not panic.
+// It accepts a command-line flag --env-file to specify the path to the .env file.
+// If the flag is not provided, it defaults to ".env" in the current directory.
+// It handles error logging but does not panic if the file cannot be loaded.
 func LoadEnv() {
 	envFile := flag.String("env-file", ".env", "Path to .env file")
 	flag.Parse()
@@ -54,6 +98,7 @@ func LoadEnv() {
 	err := godotenv.Load(*envFile)
 	if err != nil {
 		// It's a warning because the application can still function without the env file.
+		// Environment variables might be set by other means (system environment, docker, etc.)
 		log.Printf(
 			"Warning: Error loading .env file from %s: %v. Is it specified correctly? use --env-file=... flag",
 			*envFile,
