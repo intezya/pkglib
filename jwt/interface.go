@@ -1,11 +1,14 @@
 package jwt
 
-import "time"
+import (
+	"github.com/golang-jwt/jwt/v5"
+	"time"
+)
 
 // Validate defines the interface for validating a JWT token string.
 // It returns the authentication data and an error if the token is invalid.
 type Validate interface {
-	Validate(tokenString string) (authData AuthenticationData, err error)
+	Validate(tokenString string, customOptions ...jwt.ParserOption) (authData AuthenticationData, err error)
 }
 
 // Generate defines the interface for generating a new JWT token string
