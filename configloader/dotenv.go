@@ -11,26 +11,18 @@ import (
 
 // GetEnv returns the value of the environment variable or the fallback if not found.
 // If the environment variable is required (i.e., fallback is empty), it returns an error.
-func GetEnv(key string, fallback string) (string, error) {
+func GetEnv(key string) (string, error) {
 	value := os.Getenv(key)
 	if value == "" {
-		if fallback == "" {
-			return "", fmt.Errorf("missing environment variable: %s", key)
-		}
-		return fallback, nil
+		return "", fmt.Errorf("missing environment variable: %s", key)
 	}
 	return value, nil
 }
 
-// GetEnvOrPanic returns the value of the environment variable or the fallback if not found.
-// If the environment variable is required (i.e., fallback is empty), it PANICS.
-func GetEnvOrPanic(key string, fallback string) string {
+// GetEnvOrFallback returns the value of the environment variable or the fallback if not found.
+func GetEnvOrFallback(key string, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		if fallback == "" {
-			panic("missing environment variable: " + key)
-
-		}
 		return fallback
 	}
 	return value
