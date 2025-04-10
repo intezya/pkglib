@@ -22,11 +22,16 @@ func GetEnv(key string, fallback string) (string, error) {
 	return value, nil
 }
 
-// GetEnvOrPanic returns the value of the environment variable or calls panic if not found.
-func GetEnvOrPanic(key string) string {
+// GetEnvOrPanic returns the value of the environment variable or the fallback if not found.
+// If the environment variable is required (i.e., fallback is empty), it PANICS.
+func GetEnvOrPanic(key string, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		panic("missing environment variable: " + key)
+		if fallback == "" {
+			panic("missing environment variable: " + key)
+
+		}
+		return fallback
 	}
 	return value
 }
