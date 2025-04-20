@@ -3,7 +3,7 @@ package itertools
 // Map applies a function (fn) to each element in the input slice (values)
 // and returns a new slice containing the results of those function calls.
 // V is the type of elements in the input slice, and U is the type of elements in the result slice.
-func Map[V, U any](fn func(V) U, values []V) []U {
+func Map[V, U any](values []V, fn func(V) U) []U {
 	result := make([]U, len(values)) // Create a result slice with the same length as the input slice
 	for i, value := range values {
 		result[i] = fn(value) // Apply the function to each element of the input slice
