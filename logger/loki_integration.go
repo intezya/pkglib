@@ -15,38 +15,41 @@ import (
 
 // LokiConfig holds configuration for the Loki sink
 type LokiConfig struct {
-	URL         string            // URL to Loki API (e.g., "http://loki:3100/loki/api/v1/push")
-	Labels      map[string]string // Labels for log classification
-	BatchSize   int               // Max number of entries to batch before sending
-	MaxWait     time.Duration     // Max time to wait before sending a batch
-	Timeout     time.Duration     // HTTP request timeout
-	Compression bool              // Enable gzip compression
-	RetryCount  int               // Number of retries for failed requests
-	RetryWait   time.Duration     // Time to wait between retries
+	URL                  string            // URL to Loki API (e.g., "http://loki:3100/loki/api/v1/push")
+	Labels               map[string]string // Labels for log classification
+	BatchSize            int               // Max number of entries to batch before sending
+	MaxWait              time.Duration     // Max time to wait before sending a batch
+	Timeout              time.Duration     // HTTP request timeout
+	Compression          bool              // Enable gzip compression
+	RetryCount           int               // Number of retries for failed requests
+	RetryWait            time.Duration     // Time to wait between retries
+	SuppressSinkWarnings bool
 }
 
 // NewLokiConfig creates a new Loki configuration with defaults
-func NewLokiConfig(url string, labels map[string]string) *LokiConfig {
+func NewLokiConfig(url string, labels map[string]string, suppressWarnings bool) *LokiConfig {
 	return &LokiConfig{
-		URL:         url,
-		Labels:      labels,
-		BatchSize:   100,
-		MaxWait:     5 * time.Second,
-		Timeout:     5 * time.Second,
-		Compression: true,
-		RetryCount:  3,
-		RetryWait:   1 * time.Second,
+		URL:                  url,
+		Labels:               labels,
+		BatchSize:            100,
+		MaxWait:              5 * time.Second,
+		Timeout:              5 * time.Second,
+		Compression:          true,
+		RetryCount:           3,
+		RetryWait:            1 * time.Second,
+		SuppressSinkWarnings: suppressWarnings,
 	}
 }
 
 // lokiSink implements zapcore.WriteSyncer for sending logs to Loki
 type lokiSink struct {
-	config     *LokiConfig
-	buffer     []lokiEntry
-	bufferLock sync.Mutex
-	client     *http.Client
-	stopCh     chan struct{}
-	wg         sync.WaitGroup
+	suppressWarnings bool
+	config           *LokiConfig
+	buffer           []lokiEntry
+	bufferLock       sync.Mutex
+	client           *http.Client
+	stopCh           chan struct{}
+	wg               sync.WaitGroup
 }
 
 type lokiEntry struct {
@@ -91,10 +94,11 @@ func newLokiSink(config *LokiConfig) (*lokiSink, error) {
 	}
 
 	sink := &lokiSink{
-		config: config,
-		buffer: make([]lokiEntry, 0, config.BatchSize),
-		client: client,
-		stopCh: make(chan struct{}),
+		config:           config,
+		suppressWarnings: config.SuppressSinkWarnings,
+		buffer:           make([]lokiEntry, 0, config.BatchSize),
+		client:           client,
+		stopCh:           make(chan struct{}),
 	}
 
 	sink.wg.Add(1)
@@ -117,7 +121,7 @@ func (s *lokiSink) Write(p []byte) (n int, err error) {
 
 	if shouldFlush {
 		go func() {
-			if err := s.flush(); err != nil {
+			if err := s.flush(); err != nil && !s.suppressWarnings {
 				fmt.Fprintf(os.Stderr, "Failed to flush logs to Loki: %v\n", err)
 			}
 		}()
@@ -152,7 +156,7 @@ func (s *lokiSink) periodicFlush() {
 			s.bufferLock.Unlock()
 
 			if hasLogs {
-				if err := s.flush(); err != nil {
+				if err := s.flush(); err != nil && !s.suppressWarnings {
 					fmt.Fprintf(os.Stderr, "Failed to flush logs to Loki: %v\n", err)
 				}
 			}
@@ -183,7 +187,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 	defer cancel()
 
 	payload, err := s.preparePayload(entries)
-	if err != nil {
+	if err != nil && !s.suppressWarnings {
 		return fmt.Errorf("failed to prepare payload: %w", err)
 	}
 
@@ -202,7 +206,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 			break
 		}
 
-		if attempt < s.config.RetryCount {
+		if attempt < s.config.RetryCount && !s.suppressWarnings {
 			fmt.Fprintf(
 				os.Stderr, "Failed to send logs to Loki (attempt %d/%d): %v\n",
 				attempt+1, s.config.RetryCount+1, err,
@@ -210,7 +214,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 		}
 	}
 
-	if err != nil {
+	if err != nil && !s.suppressWarnings {
 		return fmt.Errorf("failed to send logs after %d attempts: %w", attempt, err)
 	}
 
@@ -245,17 +249,17 @@ func (s *lokiSink) doSend(ctx context.Context, jsonPayload []byte) error {
 	if s.config.Compression {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
-		if _, err := gz.Write(jsonPayload); err != nil {
+		if _, err := gz.Write(jsonPayload); err != nil && !s.suppressWarnings {
 			return fmt.Errorf("compression failed: %w", err)
 		}
-		if err := gz.Close(); err != nil {
+		if err := gz.Close(); err != nil && !s.suppressWarnings {
 			return fmt.Errorf("compression closure failed: %w", err)
 		}
 		body = &b
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", s.config.URL, body)
-	if err != nil {
+	if err != nil && !s.suppressWarnings {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -265,7 +269,7 @@ func (s *lokiSink) doSend(ctx context.Context, jsonPayload []byte) error {
 	}
 
 	resp, err := s.client.Do(req)
-	if err != nil {
+	if err != nil && !s.suppressWarnings {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
