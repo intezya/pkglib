@@ -206,7 +206,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 			break
 		}
 
-		if attempt < s.config.RetryCount {
+		if attempt < s.config.RetryCount && !s.suppressWarnings {
 			fmt.Fprintf(
 				os.Stderr, "Failed to send logs to Loki (attempt %d/%d): %v\n",
 				attempt+1, s.config.RetryCount+1, err,
