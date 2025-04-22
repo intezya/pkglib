@@ -187,7 +187,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 	defer cancel()
 
 	payload, err := s.preparePayload(entries)
-	if err != nil && !s.suppressWarnings {
+	if err != nil {
 		return fmt.Errorf("failed to prepare payload: %w", err)
 	}
 
@@ -206,7 +206,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 			break
 		}
 
-		if attempt < s.config.RetryCount && !s.suppressWarnings {
+		if attempt < s.config.RetryCount {
 			fmt.Fprintf(
 				os.Stderr, "Failed to send logs to Loki (attempt %d/%d): %v\n",
 				attempt+1, s.config.RetryCount+1, err,
@@ -214,7 +214,7 @@ func (s *lokiSink) sendToLoki(entries []lokiEntry) error {
 		}
 	}
 
-	if err != nil && !s.suppressWarnings {
+	if err != nil {
 		return fmt.Errorf("failed to send logs after %d attempts: %w", attempt, err)
 	}
 
@@ -249,17 +249,17 @@ func (s *lokiSink) doSend(ctx context.Context, jsonPayload []byte) error {
 	if s.config.Compression {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
-		if _, err := gz.Write(jsonPayload); err != nil && !s.suppressWarnings {
+		if _, err := gz.Write(jsonPayload); err != nil {
 			return fmt.Errorf("compression failed: %w", err)
 		}
-		if err := gz.Close(); err != nil && !s.suppressWarnings {
+		if err := gz.Close(); err != nil {
 			return fmt.Errorf("compression closure failed: %w", err)
 		}
 		body = &b
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", s.config.URL, body)
-	if err != nil && !s.suppressWarnings {
+	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -269,7 +269,7 @@ func (s *lokiSink) doSend(ctx context.Context, jsonPayload []byte) error {
 	}
 
 	resp, err := s.client.Do(req)
-	if err != nil && !s.suppressWarnings {
+	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
