@@ -2,11 +2,11 @@ package generate
 
 // Charset constants define different sets of characters that can be used for generating random strings.
 const (
-	latinUpperCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"                                           // Uppercase Latin letters
-	latinLowerCharset = "abcdefghijklmnopqrstuvwxyz"                                           // Lowercase Latin letters
-	digitsCharset     = "0123456789"                                                           // Digits from 0 to 9
-	symbolsCharset    = "!\"#$%&'()*+,-./:;<=>?@[\\]^`{|}~"                                    // Symbols and special characters
-	allCharset        = latinUpperCharset + latinLowerCharset + digitsCharset + symbolsCharset // All characters combined
+	latinUpperCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	latinLowerCharset = "abcdefghijklmnopqrstuvwxyz"
+	digitsCharset     = "0123456789"
+	symbolsCharset    = "!\"#$%&'()*+,-./:;<=>?@[\\]^`{|}~"
+	allCharset        = latinUpperCharset + latinLowerCharset + digitsCharset + symbolsCharset
 )
 
 // charset struct holds the different character sets for string generation.

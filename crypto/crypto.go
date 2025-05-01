@@ -15,7 +15,6 @@ import (
 // It returns the generated salt and an error if it fails.
 func Salt(length int) ([]byte, error) {
 	salt := make([]byte, length)
-	// Read random bytes from the system's entropy source
 	if _, err := rand.Read(salt); err != nil {
 		return nil, fmt.Errorf("failed to generate salt: %w", err)
 	}
@@ -100,13 +99,11 @@ func VerifyArgon2(password, encodedHash string, config *ArgonConfig) bool {
 		config = defaultArgonConfig
 	}
 
-	// Split the encoded hash into salt and hash
 	parts := bytes.Split([]byte(encodedHash), []byte("$"))
 	if len(parts) != 2 {
 		return false
 	}
 
-	// Decode the salt and expected hash
 	salt, err := base64.RawStdEncoding.DecodeString(string(parts[0]))
 	if err != nil {
 		return false
@@ -116,7 +113,6 @@ func VerifyArgon2(password, encodedHash string, config *ArgonConfig) bool {
 		return false
 	}
 
-	// Hash the input password with the same salt and config
 	actualHash := argon2.IDKey(
 		[]byte(password),
 		salt,
@@ -126,6 +122,5 @@ func VerifyArgon2(password, encodedHash string, config *ArgonConfig) bool {
 		config.KeyLength,
 	)
 
-	// Compare the hashes
 	return bytes.Equal(actualHash, expectedHash)
 }
