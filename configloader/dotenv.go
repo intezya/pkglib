@@ -87,11 +87,21 @@ func GetEnvIntOrFallback(key string, fallback int) int {
 	return result
 }
 
+type Logger interface {
+	Println(v ...any)
+}
+
 // LoadEnv loads environment variables from a specified file or default .env file.
 // It accepts a command-line flag --env-file to specify the path to the .env file.
 // If the flag is not provided, it defaults to ".env" in the current directory.
 // It handles error logging but does not panic if the file cannot be loaded.
-func LoadEnv() {
+func LoadEnv(logger ...Logger) {
+	logFunc := log.Println
+
+	if len(logger) > 0 {
+		logFunc = logger[0].Println
+	}
+
 	envFile := flag.String("env-file", ".env", "Path to .env file")
 	flag.Parse()
 
@@ -99,12 +109,12 @@ func LoadEnv() {
 	if err != nil {
 		// It's a warning because the application can still function without the env file.
 		// Environment variables might be set by other means (system environment, docker, etc.)
-		log.Printf(
+		logFunc(fmt.Sprintf(
 			"Warning: Error loading .env file from %s: %v. Is it specified correctly? use --env-file=... flag",
 			*envFile,
 			err,
-		)
+		))
 	} else {
-		log.Printf("Environment variables loaded from %s", *envFile)
+		logFunc(fmt.Sprintf("Environment variables loaded from %s", *envFile))
 	}
 }
