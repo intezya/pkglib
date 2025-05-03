@@ -1,14 +1,15 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"golang.org/x/crypto/argon2"
+	"strings"
 )
 
 // Salt generates a random salt of the given length.
@@ -50,77 +51,87 @@ func DecodeBase64(value string) (string, error) {
 	return string(data), nil
 }
 
-// ArgonConfig holds the configuration settings for Argon2 hashing.
-// It includes parameters like time cost, memory cost, parallelism, and key length.
-type ArgonConfig struct {
-	TimeCost    uint32
-	MemoryCost  uint32
+type ArgonParams struct {
+	Memory      uint32
+	Iterations  uint32
 	Parallelism uint8
+	SaltLength  uint32
 	KeyLength   uint32
 }
 
-// defaultArgonConfig provides a default configuration for Argon2 hashing.
-var defaultArgonConfig = &ArgonConfig{
-	TimeCost:    1,
-	MemoryCost:  64 * 1024,
-	Parallelism: 2,
+var DefaultArgonParams = &ArgonParams{
+	Memory:      64 * 1024,
+	Iterations:  1,
+	Parallelism: 4,
+	SaltLength:  16,
 	KeyLength:   32,
 }
 
-// HashArgon2 hashes a password using the Argon2 ID variant.
-// It returns the salted hash as a base64-encoded string, formatted as "<salt>$<hash>".
-func HashArgon2(password string, salt []byte, config *ArgonConfig) string {
-	if config == nil {
-		config = defaultArgonConfig
-	}
-
-	// Perform Argon2 hashing
-	hash := argon2.IDKey(
-		[]byte(password),
-		salt,
-		config.TimeCost,
-		config.MemoryCost,
-		config.Parallelism,
-		config.KeyLength,
-	)
-
-	// Return the result as "<salt>$<hash>"
-	return fmt.Sprintf(
-		"%s$%s",
-		base64.RawStdEncoding.EncodeToString(salt),
-		base64.RawStdEncoding.EncodeToString(hash),
-	)
+func generateSalt(length uint32) ([]byte, error) {
+	salt := make([]byte, length)
+	_, err := rand.Read(salt)
+	return salt, err
 }
 
-// VerifyArgon2 verifies a password against an Argon2 hash.
-// It returns true if the password matches the hash, otherwise false.
-func VerifyArgon2(password, encodedHash string, config *ArgonConfig) bool {
-	if config == nil {
-		config = defaultArgonConfig
-	}
-
-	parts := bytes.Split([]byte(encodedHash), []byte("$"))
-	if len(parts) != 2 {
-		return false
-	}
-
-	salt, err := base64.RawStdEncoding.DecodeString(string(parts[0]))
+func HashArgon2(password string, p *ArgonParams) (string, error) {
+	salt, err := generateSalt(p.SaltLength)
 	if err != nil {
-		return false
-	}
-	expectedHash, err := base64.RawStdEncoding.DecodeString(string(parts[1]))
-	if err != nil {
-		return false
+		return "", err
 	}
 
-	actualHash := argon2.IDKey(
-		[]byte(password),
-		salt,
-		config.TimeCost,
-		config.MemoryCost,
-		config.Parallelism,
-		config.KeyLength,
+	hash := argon2.IDKey([]byte(password), salt, p.Iterations, p.Memory, p.Parallelism, p.KeyLength)
+
+	saltB64 := base64.RawStdEncoding.EncodeToString(salt)
+	hashB64 := base64.RawStdEncoding.EncodeToString(hash)
+
+	encoded := fmt.Sprintf(
+		"$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
+		p.Memory,
+		p.Iterations,
+		p.Parallelism,
+		saltB64,
+		hashB64,
 	)
 
-	return bytes.Equal(actualHash, expectedHash)
+	return encoded, nil
+}
+
+func VerifyArgon2(encodedHash, password string) (bool, error) {
+	parts := strings.Split(encodedHash, "$")
+	if len(parts) != 6 {
+		return false, errors.New("invalid hash format")
+	}
+
+	var memory uint32
+	var iterations uint32
+	var parallelism uint8
+
+	_, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &iterations, &parallelism)
+	if err != nil {
+		return false, err
+	}
+
+	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
+	if err != nil {
+		return false, err
+	}
+
+	calculated := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, uint32(len(hash)))
+	return subtleCompare(hash, calculated), nil
+}
+
+func subtleCompare(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	var result byte
+	for i := range a {
+		result |= a[i] ^ b[i]
+	}
+	return result == 0
 }
