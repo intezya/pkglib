@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type TokenManager[T jwt.Claims] struct {
+type TokenManager[T Claims] struct {
 	secretKey     []byte
 	issuer        string
 	tokenDuration time.Duration
@@ -15,7 +15,7 @@ type TokenManager[T jwt.Claims] struct {
 }
 
 // New creates a new token manager with custom claims
-func New[T jwt.Claims](config Config, newClaims func() T) *TokenManager[T] {
+func New[T Claims](config Config, newClaims func() T) *TokenManager[T] {
 	if len(config.SecretKey) < 32 {
 		panic("secret key must be at least 32 bytes")
 	}
@@ -34,6 +34,11 @@ func New[T jwt.Claims](config Config, newClaims func() T) *TokenManager[T] {
 
 // Generate creates a signed token using the provided claims
 func (tm *TokenManager[T]) Generate(claims T) string {
+	now := time.Now()
+	claims.SetIssuedAt(jwt.NewNumericDate(now))
+	claims.SetExpiresAt(jwt.NewNumericDate(now.Add(tm.tokenDuration)))
+	claims.SetIssuer(tm.issuer)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(tm.secretKey)
 

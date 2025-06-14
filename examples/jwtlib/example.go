@@ -15,6 +15,18 @@ type MyClaims struct {
 	UID  int64  `json:"uid"`
 }
 
+func (m MyClaims) SetIssuer(s string) {
+	m.Issuer = s
+}
+
+func (m MyClaims) SetExpiresAt(t *jwt.NumericDate) {
+	m.ExpiresAt = t
+}
+
+func (m MyClaims) SetIssuedAt(t *jwt.NumericDate) {
+	m.IssuedAt = t
+}
+
 func main() {
 	tm := jwtlib.New[MyClaims](
 		jwtlib.Config{
@@ -28,10 +40,8 @@ func main() {
 
 	claims := MyClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   "user@example.com",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ID:        uuid.NewString(),
+			Subject: "user@example.com",
+			ID:      uuid.NewString(),
 		},
 		Role: "admin",
 		UID:  42,
