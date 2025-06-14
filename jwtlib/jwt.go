@@ -44,7 +44,7 @@ func (tm *TokenManager[T]) Generate(claims T) string {
 	return signed
 }
 
-// Parse валидирует токен и возвращает кастомные claims
+// Parse validates token and returns custom claims
 func (tm *TokenManager[T]) Parse(tokenStr string) (T, error) {
 	var parserOpts []jwt.ParserOption
 
