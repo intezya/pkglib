@@ -7,9 +7,9 @@ replace (
 	github.com/intezya/pkglib/crypto => ./../crypto
 	github.com/intezya/pkglib/generate => ./../generate
 	github.com/intezya/pkglib/itertools => ./../itertools
-	github.com/intezya/pkglib/jwt => ./../jwt
 	github.com/intezya/pkglib/logger => ./../logger
 	github.com/intezya/pkglib/sliceutils => ./../sliceutils
+	github.com/intezya/pkglib/jwtlib => ./../jwtlib
 )
 
 require (
@@ -17,9 +17,9 @@ require (
 	github.com/intezya/pkglib/crypto v0.0.0-00010101000000-000000000000
 	github.com/intezya/pkglib/generate v0.0.0-00010101000000-000000000000
 	github.com/intezya/pkglib/itertools v0.0.0-00010101000000-000000000000
-	github.com/intezya/pkglib/jwt v0.0.0-00010101000000-000000000000
 	github.com/intezya/pkglib/logger v0.0.0-00010101000000-000000000000
 	github.com/intezya/pkglib/sliceutils v0.0.0-00010101000000-000000000000
+	github.com/intezya/pkglib/jwtlib v0.0.0-00010101000000-000000000000
 )
 
 require (
