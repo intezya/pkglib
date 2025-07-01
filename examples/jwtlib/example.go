@@ -30,7 +30,7 @@ func (m MyClaims) SetIssuedAt(t *jwt.NumericDate) {
 func main() {
 	tm := jwtlib.New[MyClaims](
 		jwtlib.Config{
-			SecretKey:     "secret",
+			SecretKey:     "your-more-than-32-bit-secret-key",
 			Issuer:        "issuer",
 			TokenDuration: time.Hour,
 			Strict:        false,
