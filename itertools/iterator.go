@@ -2,6 +2,7 @@ package itertools
 
 import (
 	"iter"
+	"slices"
 )
 
 type Iterator[T any] struct {
@@ -69,14 +70,26 @@ func (i *Iterator[T]) Map(fn func(T) T) *Iterator[T] {
 
 func (i *Iterator[T]) Reverse() *Iterator[T] {
 	data := i.Collect()
-	counter := len(data) - 1
 
-	for value := range i.impl {
-		data[counter] = value
-		counter--
-	}
+	slices.Reverse(data)
 
 	return From(data)
+}
+
+// Count consumes the iterator and returns the number of elements.
+func (i *Iterator[T]) Count() int {
+	c := 0
+
+	for range i.impl {
+		c++
+	}
+
+	return c
+}
+
+// CountWithPredicate consumes the iterator and returns the number of elements that satisfies predicate.
+func (i *Iterator[T]) CountWithPredicate(predicate func(T) bool) int {
+	return i.Filter(predicate).Count()
 }
 
 // Example
