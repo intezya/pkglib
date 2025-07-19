@@ -1,11 +1,11 @@
 package itertools
 
-func Map[T, R any](items []T, fn func(T) R) []R {
-	result := make([]R, len(items))
+func Map[T, R any](values []T, f func(T) R) []R {
+	res := make([]R, len(values))
 
-	for i, item := range items {
-		result[i] = fn(item)
+	for idx, value := range values {
+		res[idx] = f(value)
 	}
 
-	return result
+	return res
 }
